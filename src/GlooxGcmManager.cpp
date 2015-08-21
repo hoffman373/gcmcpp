@@ -42,31 +42,30 @@ void GlooxGcmManager::enqueToSend(IdMessageBase* toSendMsg)
   mqLock.unlock();
 
   // Notify the worker that something is available to work.
-  workQueueCv.notify_one();
+  workQueueCv.notify_all();
 }
 
 void GlooxGcmManager::start()
 {
   // Connect to Service.
   retryCount = 0;
-  currentState = GcmManagerState::Connecting;
-  sendWorkerKeepRunning = true;
-  receiveWorkerThread = thread(&GlooxGcmManager::receiveWorker, this);
-  sendWorkerThread = thread(&GlooxGcmManager::sendWorker, this);
-  resendWorkerThread = thread(&GlooxGcmManager::resendWorker, this);
+  currentState = GcmManagerState::Connecting;  
+  receiveWorkerThread = thread(&GlooxGcmManager::receiveWorker, this);  
 }
 
 void GlooxGcmManager::receiveWorker()
 {
   // Continue to connect while the state is correct.
   while(currentState == GcmManagerState::Connecting || currentState == GcmManagerState::Draining) {
-    Client* localClient = new Client(hostname);
+    Client* localClient = new Client(hostname);    
     current = localClient;
     localClient->setPassword(password);
     localClient->setUsername(username);
     localClient->setPort(port);
     localClient->setSasl(true);
     localClient->logInstance().registerLogHandler(gloox::LogLevelDebug, gloox::LogAreaAll, this);
+    
+    
     ConnectionTLS* connection = new ConnectionTLS(localClient,
 						     new ConnectionTCPClient( localClient->logInstance(), hostname,port),
 						  localClient->logInstance());
@@ -76,8 +75,15 @@ void GlooxGcmManager::receiveWorker()
     localClient->registerStanzaExtension(new GcmStanza((Tag*)nullptr));       
     // Block while we use this connection.
     localClient->connect(true);
-    handleLog(LogLevelDebug, LogAreaUser, "Connection client terminated.");
-    delete localClient;
+    string toWrite("Connection client terminated. currentState=");
+    toWrite += getString(currentState);
+    handleLog(LogLevelDebug, LogAreaUser, toWrite);
+
+    try {
+      delete localClient;
+    } catch(...) {
+      handleLog(LogLevelError, LogAreaUser, "Error deleting the localClient");
+    }
   }
 
   handleLog(LogLevelDebug, LogAreaUser, "Receive worker finished.");
@@ -88,7 +94,8 @@ void GlooxGcmManager::stop()
   handleLog(LogLevelDebug, LogAreaUser, "Stopping manager.");
   currentState = GcmManagerState::Disconnected;
   sendWorkerKeepRunning = false;
-  workQueueCv.notify_one();
+  workQueueCv.notify_all();
+  resendWorkerCv.notify_all();
   sendWorkerThread.join();
   resendWorkerThread.join();
   handleSystemStopped();
@@ -104,7 +111,7 @@ void GlooxGcmManager::resendWorker()
       wkLock.lock();
       bool doWork = messagesWaitingForAck.size() > 0;
       wkLock.unlock();
-      while(doWork) {
+      while(doWork && sendWorkerKeepRunning) {
 	wkLock.lock();
 	set<string> toRemove;
 	for(pair<const string, pair<IdMessageBase*, int>> entry : messagesWaitingForAck)
@@ -151,7 +158,7 @@ void GlooxGcmManager::resendWorker()
 	}
 	wkLock.unlock();
 	
-	this_thread::sleep_for (chrono::seconds(2));
+	this_thread::sleep_for (chrono::seconds(2));	
 	wkLock.lock();
 	doWork = messagesWaitingForAck.size() > 0;
 	wkLock.unlock();
@@ -159,8 +166,8 @@ void GlooxGcmManager::resendWorker()
 
       // Sleep until we have things in messagesWaitingForAck.
       wkLock.lock();
+      handleLog(LogLevelDebug, LogAreaUser, "Resend working going to sleep.");
       resendWorkerCv.wait(wkLock);
-      wkLock.unlock();
     }
 }
 
@@ -172,9 +179,7 @@ GcmManagerState GlooxGcmManager::getState()
 void GlooxGcmManager::sendWorker()
 {  
   while(sendWorkerKeepRunning)
-    {
-      unique_lock<mutex> wkLock(workQueueMutex, defer_lock);
-
+    {      
       handleLog(LogLevelDebug, LogAreaUser, "Send working waking up.");
       if(currentState == GcmManagerState::Connected) {
 	handleLog(LogLevelDebug, LogAreaUser, "Send working waking up while in the connected state.");
@@ -200,10 +205,9 @@ void GlooxGcmManager::sendWorker()
 	    if(msgToSend->getMessageType() != GcmStanzaMsgType::ACK ||
 	       msgToSend->getMessageType() != GcmStanzaMsgType::NACK) {
 	      IdMessageBase* toStore = (IdMessageBase*)msgToSend->clone();
-	      wkLock.lock();
+	      unique_lock<mutex> wkLock(workQueueMutex);	      
 	      // Move to the wait queue.
-	      messagesWaitingForAck[msgToSend->getMessageId()] = pair<IdMessageBase*, int>(toStore, 0);
-	      wkLock.unlock();
+	      messagesWaitingForAck[msgToSend->getMessageId()] = pair<IdMessageBase*, int>(toStore, 0);	 
 	    }
 	    
 	    // Send.
@@ -218,23 +222,28 @@ void GlooxGcmManager::sendWorker()
 
 	if(startResendWorker) {
 	  resendWorkerCv.notify_all();
-	}
+	}	
       }
 
       // Wait until we get signaled.
-      wkLock.lock();
-      workQueueCv.wait(wkLock);
-      wkLock.unlock();
+      unique_lock<mutex> wkLock(workQueueMutex);
+      if(toSend.size() == 0) {
+	handleLog(LogLevelDebug, LogAreaUser, "Send worker going to sleep.");
+	workQueueCv.wait(wkLock);
+      }
     }
+
+  handleLog(LogLevelDebug, LogAreaUser, "Send worker finished.");
 }
 
 void GlooxGcmManager::onConnect()
 {
   retryCount = 0;
   handleLog(LogLevelDebug, LogAreaUser, "Connected to the XMPP server.");
-  currentState = GcmManagerState::Connected;
-  // Notify the worker that the connection state changed.
-  workQueueCv.notify_one();
+  currentState = GcmManagerState::Connected;  
+  sendWorkerKeepRunning = true;
+  sendWorkerThread = thread(&GlooxGcmManager::sendWorker, this);
+  resendWorkerThread = thread(&GlooxGcmManager::resendWorker, this);
 }
 
 string GlooxGcmManager::getErrorString(ConnectionError e)
@@ -286,9 +295,16 @@ string GlooxGcmManager::getErrorString(ConnectionError e)
 
 void GlooxGcmManager::onDisconnect(ConnectionError e)
 {
+  handleLog(LogLevelDebug, LogAreaUser, "Disconnecting; waiting on workers to join.");
+  workQueueCv.notify_all();
+  resendWorkerCv.notify_all();
+  sendWorkerThread.join();
+  resendWorkerThread.join();
+  handleLog(LogLevelDebug, LogAreaUser, "Workers joined.");
+  
   if(currentState == GcmManagerState::Connected) {
     // Stop has not been calld, so try to connected again.
-    currentState == GcmManagerState::Connecting;
+    currentState = GcmManagerState::Connecting;
   } else if(currentState == GcmManagerState::Connecting) {
     // We are having an issue connecting, use exponential backoff and reconnect.
     if(retryCount < MAX_RETRY_COUNT) {
@@ -312,7 +328,6 @@ bool GlooxGcmManager::onTLSConnect(const CertInfo& info)
 
 void GlooxGcmManager::handleLog(LogLevel level, LogArea area, const string& message)
 {
-  cout << message << endl;
 }
 
 void GlooxGcmManager::handleMessage (const Message &msg, MessageSession *session)
@@ -350,9 +365,9 @@ void GlooxGcmManager::handleMessage (const Message &msg, MessageSession *session
 	case GcmStanzaErrorType::INTERNAL_SERVER_ERROR:
 	  {
 	    // Drop the message.
-	    unique_lock<mutex> wkLock(workQueueMutex);
 	    if(messagesWaitingForAck.count(nack->getMessageId())==1) {
 	      handleLog(LogLevelDebug, LogAreaUser, "Nack was found in the waiting table.");
+	      handleLog(LogLevelDebug, LogAreaUser, getGcmStanzaErrorTypeName(nack->getError()));
 	      IdMessageBase* toRemove = messagesWaitingForAck[nack->getMessageId()].first;
 	      messagesWaitingForAck.erase(nack->getMessageId());
 	      handleMessageDropped(*toRemove);
@@ -403,13 +418,6 @@ void GlooxGcmManager::ackMessage(const string& messageId, const string& to)
 
 void GlooxGcmManager::handleUpstreamMessage(UpstreamMessage& msg)
 {
-  NotificationMessage* pingBack = new NotificationMessage();
-  pingBack->setTo(msg.getFrom());
-  pingBack->setTitle("Hello There!");
-  pingBack->setBody("How are you doing?");
-  pingBack->setMessageId("PingBack" + msg.getMessageId());
-  pingBack->setIcon("@drawable/myicon");
-  enqueToSend(pingBack);
 }
 
 void GlooxGcmManager::handleNackMessage(NackMessage& msg)

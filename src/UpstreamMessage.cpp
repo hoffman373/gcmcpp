@@ -12,11 +12,7 @@ void UpstreamMessage::parse(Json::Value& messageRoot) {
   setMessageId(messageRoot.get("message_id", "").asString());
   category = messageRoot.get("category", "").asString();
 
-  Json::Value& dataVal = messageRoot["data"];
-  ostringstream output;
-  output << dataVal;
-  output.flush();
-  data = output.str();
+  data = messageRoot["data"];  
 }
 
 string UpstreamMessage::buildPayload() {
@@ -48,6 +44,7 @@ MessageBase* UpstreamMessage::clone()
   UpstreamMessage* returnValue = new UpstreamMessage();
   returnValue->from = from;
   returnValue->setMessageId(getMessageId());
+  returnValue->data = data;
   return returnValue;
 }
 
@@ -62,12 +59,12 @@ void UpstreamMessage::setCategory(const string& value)
 }
 
 
-const string& UpstreamMessage::getData()
+const Json::Value& UpstreamMessage::getData()
 {
   return data;
 }
 
-void UpstreamMessage::setData(const string& value)
+void UpstreamMessage::setData(const Json::Value& value)
 {
   data = value;
 }

@@ -14,7 +14,7 @@ GcmStanzaMsgType DownstreamMessage::getMessageType() {
 
 void DownstreamMessage::parse(Json::Value& messageRoot) {
   DownstreamMessageBase::parse(messageRoot);
-  data = messageRoot.get("data", "").asString();
+  data = messageRoot["data"];
 }
 
 string DownstreamMessage::buildPayload() {
@@ -38,12 +38,12 @@ MessageBase* DownstreamMessage::clone()
   return returnValue;
 }
 
-const string& DownstreamMessage::getData()
+const Json::Value& DownstreamMessage::getData()
 {
   return data;
 }
 
-void DownstreamMessage::setData(const string& value)
+void DownstreamMessage::setData(const Json::Value& value)
 {
   data = value;
 }

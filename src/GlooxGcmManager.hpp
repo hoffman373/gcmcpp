@@ -28,7 +28,7 @@ using namespace gloox;
 
 namespace obr_basementcontrol
 {
-  class GlooxGcmManager : public IGcmManager, public ConnectionListener, LogHandler, MessageHandler
+  class GlooxGcmManager : public IGcmManager, public ConnectionListener, MessageHandler, LogHandler
   {
   public:
     GlooxGcmManager(const string& hostname, int port, const string& usename, const string& password);
@@ -42,7 +42,7 @@ namespace obr_basementcontrol
     virtual void onDisconnect(ConnectionError e);
     virtual bool onTLSConnect(const CertInfo& info);
     virtual void handleLog(LogLevel level, LogArea area, const string& message);
-    virtual void handleMessage (const Message &msg, MessageSession *session=0);    
+    virtual void handleMessage (const Message &msg, MessageSession *session=0);
 
   protected:
     virtual void handleUpstreamMessage(UpstreamMessage& msg);

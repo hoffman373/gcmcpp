@@ -27,14 +27,14 @@ namespace obr_basementcontrol
 
     void setCategory(const string& value);
 
-    const string& getData();
+    const Json::Value& getData();
 
-    void setData(const string& value);
+    void setData(const Json::Value& value);
 
   private:
     string from;
     string category;
-    string data;
+    Json::Value data;
   };
 }
 

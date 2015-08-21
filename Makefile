@@ -7,8 +7,8 @@ LFLAGS = -L/usr/local/lib -pthread -lgloox -std=c++11
 All: stage/libgcmcpp.so.1.0
 	cp src/*.hpp stage/include
 	cp src/json/*.h stage/include/json
-	ln -s stage/libgcmcpp.so.1.0 libgcmcpp.so
-	ln -s stage/libgcmcpp.so.1 libgcmcpp.so
+	ln -f -s stage/libgcmcpp.so.1.0 stage/libgcmcpp.so
+	ln -f -s stage/libgcmcpp.so.1.0 stage/libgcmcpp.so.1
 
 buildFolders:
 	mkdir -p build
@@ -29,3 +29,9 @@ clean:
 cleanCrud:
 	rm -f src/*~
 	rm -f *~
+
+install:
+	cp -f stage/libgcmcpp.so.1.0 /usr/local/lib
+	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so
+	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so.1
+	cp -fr stage/include /usr/local/include

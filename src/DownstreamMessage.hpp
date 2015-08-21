@@ -23,12 +23,12 @@ namespace obr_basementcontrol
 
     virtual MessageBase* clone();
       
-    const string& getData();
+    const Json::Value& getData();
 
-    void setData(const string& value);
+    void setData(const Json::Value& value);
 
   private:
-    string data;
+    Json::Value data;
   };
 }
 

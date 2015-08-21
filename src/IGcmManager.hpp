@@ -7,6 +7,21 @@
 namespace obr_basementcontrol
 {
   enum class GcmManagerState{Disconnected, Connected, Connecting, Waiting, Draining};
+
+  inline const char* getString(GcmManagerState toConvert) {
+    switch(toConvert) {
+    case GcmManagerState::Disconnected:
+      return "Disconnected";
+    case GcmManagerState::Connected:
+      return "Connected";
+    case GcmManagerState::Connecting:
+      return "Connecting";
+    case GcmManagerState::Waiting:
+      return "Waiting";
+    case GcmManagerState::Draining:
+      return "Draining";
+    }
+  }
   
   class IGcmManager
   {
