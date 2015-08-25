@@ -70,6 +70,8 @@ namespace obr_basementcontrol
 
     void setTitleLocKey(const string& value);
 
+    virtual void accept(IGcmMessageVisitor *visitor);
+
   private:
     string title;
     string body;

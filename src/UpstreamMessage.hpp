@@ -31,6 +31,8 @@ namespace obr_basementcontrol
 
     void setData(const Json::Value& value);
 
+    virtual void accept(IGcmMessageVisitor *visitor);
+
   private:
     string from;
     string category;

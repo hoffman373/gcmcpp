@@ -30,6 +30,8 @@ namespace obr_basementcontrol
 
     const GcmStanzaErrorType getError();
 
+    virtual void accept(IGcmMessageVisitor *visitor);
+
   private:
     string from;
     GcmStanzaErrorType error;

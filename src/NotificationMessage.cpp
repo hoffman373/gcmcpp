@@ -232,3 +232,8 @@ void NotificationMessage::setTitleLocKey(const string& value)
 {
   titleLocKey = value;
 }
+
+void NotificationMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}

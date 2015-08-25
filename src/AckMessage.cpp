@@ -58,3 +58,8 @@ void AckMessage::setTo(const string& value)
 {
   to = value;
 }
+
+void AckMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}

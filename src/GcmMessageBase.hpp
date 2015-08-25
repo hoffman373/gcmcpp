@@ -4,6 +4,7 @@
 #include <string>
 #include "json/json.h"
 #include <ostream>
+#include "IGcmMessageVisitor.hpp"
 
 using namespace std;
 
@@ -28,7 +29,9 @@ namespace obr_basementcontrol
 
     virtual string buildPayload() = 0;
 
-    virtual MessageBase* clone() = 0;     
+    virtual MessageBase* clone() = 0;
+    
+    virtual void accept(IGcmMessageVisitor *visitor) = 0;
   };
 }
 

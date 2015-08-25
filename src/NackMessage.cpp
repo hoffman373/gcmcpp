@@ -91,3 +91,8 @@ MessageBase* NackMessage::clone()
   returnValue->errorDescription = errorDescription;
   return returnValue;
 }
+
+void NackMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}

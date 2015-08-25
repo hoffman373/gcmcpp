@@ -111,3 +111,8 @@ void ReceiptMessage::setDeviceRegistrationId(const string& value)
 {
   deviceRegistrationId = value;
 }
+
+void ReceiptMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}

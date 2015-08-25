@@ -42,6 +42,8 @@ namespace obr_basementcontrol
 
     void setDeviceRegistrationId(const string& value);
 
+    virtual void accept(IGcmMessageVisitor *visitor);
+
   private:
     string from;
     string messageId;

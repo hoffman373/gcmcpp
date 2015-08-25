@@ -47,3 +47,8 @@ void DownstreamMessage::setData(const Json::Value& value)
 {
   data = value;
 }
+
+void DownstreamMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}

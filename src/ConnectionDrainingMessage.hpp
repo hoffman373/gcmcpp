@@ -27,6 +27,8 @@ namespace obr_basementcontrol
       stream << "here";
       return stream;
     }
+
+    virtual void accept(IGcmMessageVisitor *visitor);
   };
 }
 

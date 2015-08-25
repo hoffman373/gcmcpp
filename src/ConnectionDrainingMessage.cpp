@@ -36,3 +36,8 @@ void ConnectionDrainingMessage::dumpToStream(ostream& stream)
 {
   stream << "Here";
 }
+
+void ConnectionDrainingMessage::accept(IGcmMessageVisitor *visitor)
+{
+  return visitor->visit(*this);
+}
