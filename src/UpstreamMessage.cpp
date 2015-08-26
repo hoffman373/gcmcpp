@@ -16,8 +16,7 @@ void UpstreamMessage::parse(Json::Value& messageRoot) {
 }
 
 string UpstreamMessage::buildPayload() {
-  Json::Value messageRoot;
-  messageRoot["message_type"] = "ack";
+  Json::Value messageRoot; 
   messageRoot["from"] = from;
   messageRoot["message_id"] = getMessageId();
   messageRoot["category"] = category;
