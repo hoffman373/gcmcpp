@@ -4,7 +4,7 @@ OBJ = jsoncpp.o GcmStanza.o AckMessage.o NackMessage.o ReceiptMessage.o Connecti
 LFLAGS = -L/usr/local/lib -pthread -lgloox -std=c++11
 
 
-All: stage/libgcmcpp.so.1.0
+All: stage/libgcmcpp.so.1.0 stage/libgcmcpp.a
 	cp src/*.hpp stage/include
 	cp src/json/*.h stage/include/json
 	ln -f -s stage/libgcmcpp.so.1.0 stage/libgcmcpp.so
@@ -20,6 +20,9 @@ build/%.o: src/%.cpp
 stage/libgcmcpp.so.1.0: buildFolders $(OBJ:%.o=build/%.o)
 	$(CC) -shared -Wl,-soname,libgcmcpp.so.1 -o stage/libgcmcpp.so.1.0 $(OBJ:%.o=build/%.o) $(LFLAGS)
 
+stage/libgcmcpp.a: buildFolders $(OBJ:%.o=build/%.o)
+	ar rcs stage/libgcmcpp.a $(OBJ:%.o=build/%.o)
+
 clean:	
 	rm -fr build/
 	rm -fr stage/
@@ -32,6 +35,7 @@ cleanCrud:
 
 install:
 	cp -f stage/libgcmcpp.so.1.0 /usr/local/lib
+	cp -f stage/libgcmcpp.a /usr/local/lib
 	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so
 	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so.1
 	cp -fr stage/include /usr/local/include
