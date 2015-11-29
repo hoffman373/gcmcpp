@@ -1,4 +1,4 @@
-CC = g++
+CC = g++-4.8
 CFLAGS=-std=c++11 -I. -I/usr/local/include
 OBJ = jsoncpp.o GcmStanza.o AckMessage.o NackMessage.o ReceiptMessage.o ConnectionDrainingMessage.o UpstreamMessage.o NotificationMessage.o DownstreamMessage.o GlooxGcmManager.o IGcmManager.o IdMessageBase.o DownstreamMessageBase.o
 LFLAGS = -L/usr/local/lib -pthread -lgloox -std=c++11
@@ -38,4 +38,4 @@ install:
 	cp -f stage/libgcmcpp.a /usr/local/lib
 	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so
 	ln -f -s /usr/local/lib/libgcmcpp.so.1.0 /usr/local/lib/libgcmcpp.so.1
-	cp -fr stage/include /usr/local/include
+	cp -fr stage/include/* /usr/local/include
